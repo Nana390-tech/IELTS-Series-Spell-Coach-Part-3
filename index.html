@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hear It, Spell It — Part 3</title>
+<style>
+:root{
+  --plum:#4B2E83;
+  --plum-deep:#34205C;
+  --teal:#F08A3C;
+  --teal-soft:#FDEDE0;
+  --sand:#F8F5FB;
+  --ink:#201B2E;
+  --muted:#655C72;
+  --line:#DED6E8;
+  --good:#127A54;
+  --good-soft:#DFF3EA;
+  --bad:#B3282B;
+  --bad-soft:#FAE4E3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sand);color:var(--ink);font-family:"Segoe UI",Tahoma,Verdana,Arial,sans-serif;font-size:20px;line-height:1.5}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.ar{font-family:"Segoe UI","Geeza Pro",Arial,sans-serif;direction:rtl;unicode-bidi:isolate}
+header{background:var(--plum);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:1.6rem}
+header .score{background:var(--teal);color:#3A1B05;font-weight:700;padding:6px 16px;border-radius:30px;font-size:1.05rem}
+main{max-width:900px;margin:0 auto;padding:28px 20px 60px}
+.screen{display:none}
+.screen.active{display:block}
+.intro{font-size:1.15rem;color:var(--muted);margin:0 0 22px}
+label.field{display:block;font-weight:600;margin-bottom:6px}
+input[type=text]{width:100%;font-size:1.3rem;padding:14px 16px;border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.row{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}
+.row>div{flex:1 1 220px}
+select{width:100%;font-size:1.1rem;padding:12px;border:2px solid var(--line);border-radius:10px;background:#fff}
+h2{font-size:1.35rem;margin:28px 0 12px;color:var(--plum-deep)}
+.topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.topic{background:#fff;border:2px solid var(--line);border-radius:14px;padding:16px;text-align:left;color:var(--ink);display:flex;gap:12px;align-items:flex-start}
+.topic:hover{border-color:var(--plum)}
+.topic .ic{font-size:1.9rem;line-height:1}
+.topic strong{display:block;font-size:1.1rem;color:var(--plum-deep)}
+.topic span{font-size:.92rem;color:var(--muted)}
+.topic .best{display:block;font-size:.9rem;color:var(--good);font-weight:600;margin-top:4px}
+.big-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:14px}
+.choice{border:none;border-radius:14px;padding:18px;text-align:left;color:#fff;background:var(--plum)}
+.choice.alt{background:var(--teal);color:#3A1B05}
+.choice strong{display:block;font-size:1.15rem}
+.choice span{font-size:.95rem;opacity:.9}
+.note{background:var(--teal-soft);border-left:6px solid var(--teal);padding:14px 18px;border-radius:8px;margin-top:26px;font-size:1rem}
+
+.progress{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:20px}
+.dot{width:20px;height:9px;border-radius:5px;background:var(--line)}
+.dot.now{background:var(--plum)}
+.dot.ok{background:var(--good)}
+.dot.no{background:var(--bad)}
+.counter{color:var(--muted);font-size:1rem;margin-bottom:6px}
+.counter b{color:var(--plum-deep)}
+.stage{background:#fff;border:2px solid var(--line);border-radius:18px;padding:34px 26px;text-align:center}
+.speaker{width:150px;height:150px;border-radius:50%;border:none;background:var(--teal);color:#3A1B05;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 0 #C9701F;transition:transform .1s}
+.speaker:active{transform:translateY(5px);box-shadow:0 3px 0 #C9701F}
+.speaker svg{width:70px;height:70px}
+.speaker.playing{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion:reduce){.speaker.playing{animation:none}}
+.status{min-height:32px;margin:18px 0 6px;color:var(--muted);font-size:1.05rem}
+.tools{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+.tool{background:var(--sand);border:2px solid var(--line);border-radius:30px;padding:8px 18px;font-size:1rem;color:var(--plum-deep)}
+.tool:disabled{opacity:.45;cursor:not-allowed}
+#answer{text-align:center;font-size:2rem;letter-spacing:1px;max-width:540px;margin:0 auto;display:block}
+#answer.right{border-color:var(--good);background:var(--good-soft)}
+#answer.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.main-btn{background:var(--plum);color:#fff;border:none;border-radius:12px;padding:14px 34px;font-size:1.2rem;font-weight:600;margin-top:20px}
+.main-btn:hover{background:var(--plum-deep)}
+.main-btn.secondary{background:#fff;color:var(--plum);border:2px solid var(--plum)}
+.feedback{margin-top:22px;border-radius:12px;padding:18px;display:none;text-align:center}
+.feedback.show{display:block}
+.feedback.good{background:var(--good-soft)}
+.feedback.bad{background:var(--bad-soft)}
+.feedback .big{font-size:1.4rem;font-weight:700}
+.word-show{font-size:2.3rem;font-weight:700;letter-spacing:3px;margin:8px 0;word-break:break-word}
+.word-show .miss{color:var(--bad);text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:6px}
+.word-show .hit{color:var(--good)}
+.yours{font-size:1.05rem;color:var(--muted)}
+.yours s{color:var(--bad)}
+.meaning{font-size:1.4rem;margin-top:6px}
+.retype-msg{font-weight:600;color:var(--bad);margin-top:10px}
+
+.result-top{background:var(--plum);color:#fff;border-radius:18px;padding:30px;text-align:center}
+.result-top .pct{font-size:4rem;font-weight:800;line-height:1;color:var(--teal)}
+.result-top p{margin:8px 0 0}
+.badges{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0}
+.badge{background:#fff;border:2px solid var(--teal);border-radius:12px;padding:10px 16px;font-size:1rem}
+.badge b{display:block;color:var(--plum-deep)}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;font-size:1.05rem}
+th,td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:left}
+th{background:var(--teal-soft);color:var(--plum-deep)}
+td.w{font-weight:700}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:24px}
+#certificate{display:none;margin-top:30px}
+.cert{background:#fff;border:10px solid var(--plum);outline:3px solid var(--teal);outline-offset:-22px;padding:50px 40px;text-align:center}
+.cert h3{font-size:2.2rem;margin:0;color:var(--plum)}
+.cert .name{font-size:2.4rem;font-weight:700;border-bottom:3px solid var(--teal);display:inline-block;padding:0 30px;margin:18px 0}
+.cert .credit{margin-top:30px;color:var(--muted);font-size:1rem}
+footer{text-align:center;color:var(--muted);font-size:.95rem;padding:20px}
+.warn{background:var(--bad-soft);border-left:6px solid var(--bad);padding:14px 18px;border-radius:8px;margin-bottom:18px;display:none}
+canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+@media print{ body *{visibility:hidden} #certificate,#certificate *{visibility:visible} #certificate{position:absolute;left:0;top:0;width:100%;display:block!important} }
+@media (max-width:560px){ body{font-size:18px} .speaker{width:120px;height:120px} #answer{font-size:1.6rem} .word-show{font-size:1.8rem} }
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<header>
+  <h1>Hear It, Spell It <span style="opacity:.75;font-weight:400">· Part 3</span></h1>
+  <div class="score" id="scoreBox">0 points</div>
+</header>
+
+<main>
+  <section class="screen active" id="start">
+    <div class="warn" id="noVoice">Your browser cannot read words out loud. Please open this page in Chrome, Edge or Safari.</div>
+    <p class="intro">Choose a topic. You will hear each word two times, then type it and press <b>Check</b>.<br><span class="ar">اختر موضوعًا. ستسمع كل كلمة مرتين، ثم اكتبها واضغط "Check".</span></p>
+
+    <div class="row">
+      <div><label class="field" for="studentName">Your name</label>
+        <input type="text" id="studentName" placeholder="Type your name" autocomplete="off"></div>
+      <div><label class="field" for="voiceSel">Voice</label><select id="voiceSel"></select></div>
+      <div><label class="field" for="speedSel">Speed</label>
+        <select id="speedSel"><option value="0.7">Slow</option><option value="0.85" selected>Normal</option><option value="1">Fast</option></select></div>
+    </div>
+
+    <h2>Topics</h2>
+    <div class="topics" id="topics"></div>
+
+    <h2>Challenges</h2>
+    <div class="big-choices">
+      <button class="choice" id="mixBtn"><strong>Mixed 20</strong><span>Twenty words from any topic</span></button>
+      <button class="choice alt" id="allBtn"><strong>Marathon</strong><span>All 40 words in one go</span></button>
+    </div>
+
+    <div class="note">Capital letters do not matter: <b>Museum</b>, <b>museum</b> and <b>MUSEUM</b> are all correct. Short words still need care: <b>wool</b>, <b>socks</b> and <b>glass</b> all have double letters.</div>
+  </section>
+
+  <section class="screen" id="game">
+    <div class="counter" id="counter"></div>
+    <div class="progress" id="progress"></div>
+    <div class="stage">
+      <button class="speaker" id="speakBtn" aria-label="Play the word">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06A9 9 0 0 0 14 3.23z"/></svg>
+      </button>
+      <div class="status" id="status">Press the speaker to start.</div>
+      <div class="tools">
+        <button class="tool" id="againBtn">Hear it again (−3 points)</button>
+        <button class="tool" id="sentenceBtn">Hear it in a sentence</button>
+      </div>
+      <input type="text" id="answer" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Type the word here" aria-label="Your spelling">
+      <div><button class="main-btn" id="checkBtn">Check</button></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+    <div class="btn-row"><button class="main-btn secondary" id="quitBtn">Back to topics</button></div>
+  </section>
+
+  <section class="screen" id="results">
+    <div class="result-top">
+      <div class="pct" id="pct">0%</div>
+      <p id="resultLine"></p>
+    </div>
+    <div class="badges" id="badges"></div>
+    <h2>Your words</h2>
+    <table>
+      <thead><tr><th>Word</th><th>Your answer</th><th>Topic</th><th>Meaning</th></tr></thead>
+      <tbody id="resultTable"></tbody>
+    </table>
+    <div class="btn-row">
+      <button class="main-btn" id="mistakesBtn">Practise my mistakes</button>
+      <button class="main-btn secondary" id="saveBtn">Save my results</button>
+      <button class="main-btn secondary" id="homeBtn">Choose another topic</button>
+    </div>
+    <div id="certificate">
+      <div class="cert">
+        <h3>Certificate of Achievement</h3>
+        <p>This is to certify that</p>
+        <div class="name" id="certName"></div>
+        <p id="certText"></p>
+        <p id="certDate"></p>
+        <div class="credit">Designed by: Nazila Motahari</div>
+      </div>
+      <div class="btn-row"><button class="main-btn" onclick="window.print()">Print certificate</button></div>
+    </div>
+  </section>
+</main>
+<footer>Designed by: Nazila Motahari</footer>
+
+<script>
+const TOPICS = [
+ {name:"Order Words",icon:"🔢",words:[
+  ["first","أول","She was the first student to finish."],
+  ["second","ثاني","Our office is on the second floor."],
+  ["third","ثالث","He came third in the competition."],
+  ["fourth","رابع","The fourth question was the hardest."],
+  ["fifth","خامس","This is my fifth year at college."],
+  ["last","أخير","The last bus leaves at eleven."],
+  ["next","التالي","The next lesson starts at ten."],
+  ["final","نهائي","The final exam is in December."]]},
+ {name:"Colours",icon:"🎨",words:[
+  ["yellow","أصفر","She wore a yellow dress."],
+  ["blue","أزرق","The blue folder is on my desk."],
+  ["orange","برتقالي","He drives an orange car."],
+  ["white","أبيض","Write your name on the white card."],
+  ["black","أسود","Use a black pen for the form."],
+  ["green","أخضر","The green button opens the door."],
+  ["grey","رمادي","The sky was grey all morning."],
+  ["brown","بني","She carries a brown bag."]]},
+ {name:"Clothes",icon:"👕",words:[
+  ["shirt","قميص","He ironed his white shirt."],
+  ["gloves","قفازات","Wear gloves in the laboratory."],
+  ["skirt","تنورة","Her skirt is dark blue."],
+  ["pants","بنطال","These pants are too long."],
+  ["jacket","سترة","Take a jacket; it is cold outside."],
+  ["shoes","حذاء","My new shoes are very comfortable."],
+  ["socks","جوارب","He bought three pairs of socks."],
+  ["scarf","وشاح","She wears a scarf in winter."]]},
+ {name:"Materials",icon:"🧵",words:[
+  ["plastic","بلاستيك","The bottle is made of plastic."],
+  ["wool","صوف","This jumper is made of wool."],
+  ["paper","ورق","Please recycle the paper."],
+  ["cotton","قطن","Cotton shirts are good in hot weather."],
+  ["leather","جلد","He bought a leather wallet."],
+  ["metal","معدن","The gate is made of metal."],
+  ["glass","زجاج","Be careful with the glass door."],
+  ["rubber","مطاط","The shoes have rubber soles."]]},
+ {name:"Keys & Documents",icon:"🔑",words:[
+  ["lock","قفل","The lock on the door is broken."],
+  ["key","مفتاح","I lost the key to my room."],
+  ["locker","خزانة","Put your bag in the locker."],
+  ["uniform","زي موحد","Students wear a uniform at college."],
+  ["passport","جواز سفر","Show your passport at the airport."],
+  ["document","وثيقة","Bring your document with you."],
+  ["card","بطاقة","Use your card to enter the building."],
+  ["badge","شارة تعريف","Every visitor must wear a badge."]]}
+];
+
+const ALL = [];
+TOPICS.forEach((t,ti)=>t.words.forEach(([word,ar,sentence])=>ALL.push({word,ar,sentence,topic:t.name,icon:t.icon,id:ALL.length})));
+
+const $ = id => document.getElementById(id);
+let state={queue:[],index:0,points:0,results:[],replayUsed:false,checked:false,mustRetype:false,streak:0,bestStreak:0,label:"",key:""};
+let totalPoints=0, bestScores={};
+
+/* ---------- speech ---------- */
+const synth=window.speechSynthesis;
+let voices=[];
+function loadVoices(){
+  if(!synth){ $("noVoice").style.display="block"; return; }
+  voices=synth.getVoices().filter(v=>/^en/i.test(v.lang));
+  const sel=$("voiceSel"), prev=sel.value;
+  sel.innerHTML="";
+  if(!voices.length){ sel.innerHTML='<option value="">Default English</option>'; return; }
+  const rank=v=>(/en-GB/i.test(v.lang)?0:/en-US/i.test(v.lang)?1:2);
+  voices.sort((a,b)=>rank(a)-rank(b));
+  voices.forEach((v,i)=>{const o=document.createElement("option");o.value=i;o.textContent=v.name.replace(/Microsoft |Google /,"")+" ("+v.lang+")";sel.appendChild(o);});
+  if(prev) sel.value=prev;
+}
+if(synth){ loadVoices(); synth.onvoiceschanged=loadVoices; } else { $("noVoice").style.display="block"; }
+
+function speakList(parts,onDone){
+  if(!synth) return;
+  synth.cancel();
+  const btn=$("speakBtn"); btn.classList.add("playing");
+  let i=0;
+  const next=()=>{
+    if(i>=parts.length){ btn.classList.remove("playing"); onDone&&onDone(); return; }
+    const p=parts[i++];
+    if(p.pause){ setTimeout(next,p.pause); return; }
+    const u=new SpeechSynthesisUtterance(p.text);
+    const v=voices[$("voiceSel").value];
+    if(v) u.voice=v;
+    u.lang=v?v.lang:"en-GB";
+    u.rate=parseFloat($("speedSel").value);
+    u.onend=next; u.onerror=next;
+    synth.speak(u);
+  };
+  next();
+}
+function playTwice(){
+  const w=current();
+  $("status").textContent="Listen carefully…";
+  speakList([{text:w.word},{pause:1400},{text:w.word}],()=>{
+    if(!state.checked) $("status").textContent="Now type the word.";
+    $("answer").focus();
+  });
+}
+
+/* ---------- helpers ---------- */
+const normalise=s=>s.trim().toLowerCase().replace(/\s+/g," ");
+const ALT={"grey":["gray"],"pants":["trousers"]}; // other correct forms also accepted
+const matches=(typed,word)=>normalise(typed)===word||(ALT[word]||[]).includes(normalise(typed));
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const current=()=>state.queue[state.index];
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");window.scrollTo(0,0);}
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function updateScore(){$("scoreBox").textContent=(totalPoints+state.points)+" points";}
+
+function markWord(correct,typed){
+  const a=correct,b=typed.toLowerCase(),n=a.length,m=b.length;
+  const d=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=0;i<=n;i++)d[i][0]=i;
+  for(let j=0;j<=m;j++)d[0][j]=j;
+  for(let i=1;i<=n;i++)for(let j=1;j<=m;j++)
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  const ok=new Array(n).fill(false);
+  let i=n,j=m;
+  while(i>0&&j>0){
+    if(a[i-1]===b[j-1]&&d[i][j]===d[i-1][j-1]){ok[i-1]=true;i--;j--;}
+    else if(d[i][j]===d[i-1][j-1]+1){i--;j--;}
+    else if(d[i][j]===d[i-1][j]+1){i--;}
+    else{j--;}
+  }
+  return a.split("").map((ch,k)=>ch===" "?"&nbsp;":`<span class="${ok[k]?"hit":"miss"}">${esc(ch)}</span>`).join("");
+}
+
+/* ---------- start ---------- */
+function buildTopics(){
+  const box=$("topics"); box.innerHTML="";
+  TOPICS.forEach((t,i)=>{
+    const b=document.createElement("button");
+    b.className="topic";
+    const best=bestScores["t"+i];
+    b.innerHTML=`<span class="ic">${t.icon}</span><span><strong>${t.name}</strong>
+      <span>${t.words.length} words · ${t.words[0][0]}, ${t.words[1][0]}…</span>
+      ${best!=null?`<span class="best">Best: ${best}%</span>`:""}</span>`;
+    b.onclick=()=>startRound(ALL.filter(w=>w.topic===t.name),t.icon+" "+t.name,"t"+i);
+    box.appendChild(b);
+  });
+}
+$("mixBtn").onclick=()=>startRound(shuffle(ALL).slice(0,20),"Mixed 20","mix");
+$("allBtn").onclick=()=>startRound(ALL,"Marathon: all 40 words","all");
+
+function startRound(list,label,key){
+  if(!synth){ alert("This browser cannot read words out loud. Please use Chrome, Edge or Safari."); return; }
+  state={queue:shuffle(list),index:0,points:0,results:[],replayUsed:false,checked:false,mustRetype:false,streak:0,bestStreak:0,label,key};
+  const p=$("progress"); p.innerHTML="";
+  state.queue.forEach(()=>{const d=document.createElement("div");d.className="dot";p.appendChild(d);});
+  show("game");
+  loadWord();
+}
+
+/* ---------- game ---------- */
+function loadWord(){
+  state.replayUsed=false; state.checked=false; state.mustRetype=false;
+  const inp=$("answer");
+  inp.value=""; inp.className=""; inp.disabled=false; inp.placeholder="Type the word here";
+  $("feedback").className="feedback"; $("feedback").innerHTML="";
+  $("checkBtn").textContent="Check";
+  $("againBtn").textContent="Hear it again (−3 points)";
+  $("counter").innerHTML=`${esc(state.label)} · Word <b>${state.index+1}</b> of ${state.queue.length} · Topic: ${esc(current().topic)}`;
+  [...$("progress").children].forEach((d,i)=>{ if(i===state.index) d.classList.add("now"); });
+  updateScore();
+  setTimeout(playTwice,400);
+}
+
+$("speakBtn").onclick=()=>{ if(state.checked){ speakList([{text:current().word}]); return; } playTwice(); };
+$("againBtn").onclick=()=>{
+  if(state.checked){ speakList([{text:current().word}]); return; }
+  if(!state.replayUsed){ state.replayUsed=true; $("againBtn").textContent="Hear it again"; }
+  playTwice();
+};
+$("sentenceBtn").onclick=()=>{
+  const w=current();
+  $("status").textContent="Listen to the word in a sentence…";
+  speakList([{text:w.sentence},{pause:700},{text:w.word}],()=>{ if(!state.checked) $("status").textContent="Now type the word."; $("answer").focus(); });
+};
+
+function check(){
+  const w=current(), inp=$("answer"), fb=$("feedback"), typed=inp.value;
+
+  if(state.mustRetype){
+    if(matches(typed,w.word)){
+      state.mustRetype=false;
+      inp.className="right"; inp.disabled=true;
+      $("checkBtn").textContent=state.index===state.queue.length-1?"See results":"Next word";
+      const m=fb.querySelector(".retype-msg");
+      m.textContent="Well done. Now you know it."; m.style.color="var(--good)";
+      $("checkBtn").focus();
+    } else {
+      inp.className="wrong";
+      fb.querySelector(".retype-msg").textContent="Not yet. Look at the word and try again.";
+      inp.select();
+    }
+    return;
+  }
+  if(state.checked){ next(); return; }
+  if(!typed.trim()){ $("status").textContent="Type your answer first."; inp.focus(); return; }
+
+  state.checked=true;
+  const correct=matches(typed,w.word);
+  const dot=$("progress").children[state.index];
+  dot.classList.remove("now");
+  $("againBtn").textContent="Hear the word";
+  $("status").textContent="";
+
+  if(correct){
+    const pts=state.replayUsed?7:10;
+    state.points+=pts; state.streak++; state.bestStreak=Math.max(state.bestStreak,state.streak);
+    state.results.push({...w,typed:typed.trim(),correct:true,replay:state.replayUsed});
+    dot.classList.add("ok");
+    inp.className="right"; inp.disabled=true;
+    fb.className="feedback show good";
+    fb.innerHTML=`<div class="big" style="color:var(--good)">Correct! +${pts} points${state.streak>=3?` · ${state.streak} in a row`:""}</div>
+      <div class="word-show" style="color:var(--good)">${esc(w.word)}</div>
+      <div class="meaning ar">${w.ar}</div>`;
+    $("checkBtn").textContent=state.index===state.queue.length-1?"See results":"Next word";
+    $("checkBtn").focus();
+  } else {
+    state.streak=0;
+    state.results.push({...w,typed:typed.trim(),correct:false,replay:state.replayUsed});
+    dot.classList.add("no");
+    fb.className="feedback show bad";
+    fb.innerHTML=`<div class="big" style="color:var(--bad)">Not quite</div>
+      <div class="yours">You wrote: <s>${esc(typed.trim())}</s></div>
+      <div class="word-show">${markWord(w.word,normalise(typed))}</div>
+      <div class="yours">Red underlined letters are the ones to learn.</div>
+      <div class="meaning ar">${w.ar}</div>
+      <div class="retype-msg">Type the correct spelling to continue.</div>`;
+    state.mustRetype=true;
+    inp.className="wrong"; inp.value=""; inp.placeholder="Type it correctly";
+    $("checkBtn").textContent="Check again";
+    inp.focus();
+  }
+  updateScore();
+}
+$("checkBtn").onclick=check;
+$("answer").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); check(); } });
+
+function next(){
+  if(synth) synth.cancel();
+  if(state.index<state.queue.length-1){ state.index++; loadWord(); } else finish();
+}
+
+$("quitBtn").onclick=()=>{
+  if(synth) synth.cancel();
+  if(state.results.length && !confirm("Leave this topic? Your answers here will not be counted.")) return;
+  state.points=0; updateScore(); buildTopics(); show("start");
+};
+
+/* ---------- results ---------- */
+function finish(){
+  totalPoints+=state.points; state.points=0; updateScore();
+  const total=state.results.length, right=state.results.filter(r=>r.correct).length;
+  const pct=Math.round(right/total*100);
+  if(state.key!=="mistakes") bestScores[state.key]=Math.max(bestScores[state.key]||0,pct);
+  $("pct").textContent=pct+"%";
+  $("resultLine").textContent=`${right} out of ${total} words correct · ${state.label}`;
+
+  const badges=[];
+  if(pct===100) badges.push(["Perfect Speller","Every word correct"]);
+  if(state.results.every(r=>!r.replay)) badges.push(["Sharp Ears","No extra listening"]);
+  if(state.bestStreak>=5) badges.push(["Hot Streak",state.bestStreak+" correct in a row"]);
+  if(pct>=80) badges.push(["Topic Master","80% or more"]);
+  if(state.key==="all"&&pct>=80) badges.push(["Marathon Finisher","All 40 words"]);
+  $("badges").innerHTML=badges.map(b=>`<div class="badge"><b>${b[0]}</b>${b[1]}</div>`).join("")||`<div class="badge"><b>Keep going</b>Practise your mistakes and try again</div>`;
+
+  $("resultTable").innerHTML=state.results.map(r=>`<tr>
+    <td class="w" style="color:${r.correct?"var(--good)":"var(--bad)"}">${esc(r.word)}</td>
+    <td>${r.correct?"✔ ":"✘ "}${esc(r.typed)}</td>
+    <td>${r.icon} ${esc(r.topic)}</td>
+    <td class="ar">${r.ar}</td></tr>`).join("");
+
+  $("mistakesBtn").style.display=state.results.some(r=>!r.correct)?"":"none";
+
+  const name=$("studentName").value.trim();
+  if(pct>=80 && state.key!=="mistakes"){
+    $("certificate").style.display="block";
+    $("certName").textContent=name||"Student";
+    $("certText").textContent=`for scoring ${pct}% (${right}/${total}) in Hear It, Spell It — Part 3 — ${state.label}`;
+    $("certDate").textContent=new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+    setTimeout(confetti,50);
+  } else $("certificate").style.display="none";
+  show("results");
+}
+
+$("mistakesBtn").onclick=()=>{
+  const list=state.results.filter(r=>!r.correct).map(r=>ALL[r.id]);
+  startRound(list,"My mistakes","mistakes");
+};
+$("homeBtn").onclick=()=>{ buildTopics(); show("start"); };
+$("saveBtn").onclick=()=>{
+  const data={app:"Hear It, Spell It - Part 3",student:$("studentName").value.trim()||"Student",set:state.label,
+    date:new Date().toISOString(),score:state.results.filter(r=>r.correct).length+"/"+state.results.length,
+    totalPoints,bestScores,answers:state.results.map(r=>({word:r.word,topic:r.topic,typed:r.typed,correct:r.correct}))};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`spelling-part3-${data.student.replace(/\s+/g,"_")}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+/* ---------- confetti ---------- */
+function confetti(){
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c=$("confetti");
+  let ctx=null;
+  try{ ctx=c.getContext("2d"); }catch(e){ return; }
+  if(!ctx) return;
+  c.width=innerWidth; c.height=innerHeight;
+  const cols=["#4B2E83","#F08A3C","#127A54","#FFFFFF","#D9C2F0"];
+  const ps=Array.from({length:160},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,r:5+Math.random()*6,c:cols[Math.floor(Math.random()*cols.length)],vy:2+Math.random()*3,vx:-1.5+Math.random()*3,a:Math.random()*6}));
+  let t=0;
+  (function frame(){
+    ctx.clearRect(0,0,c.width,c.height);
+    ps.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.a+=.1;ctx.fillStyle=p.c;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6);ctx.restore();});
+    if(++t<220) requestAnimationFrame(frame); else ctx.clearRect(0,0,c.width,c.height);
+  })();
+}
+
+buildTopics();
+</script>
+</body>
+</html>
